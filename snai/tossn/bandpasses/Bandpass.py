@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from inspect import getattr_static
+
+from pyrofit.utils.torchutils import _diff_one, _mid_many
+from torch import Tensor
+
+from ..extinction import Extinction, InterpolatedExtinction, Linear1dInterpolatedExtinction
+from ..utils import _t, cached_property
+
+
+class Bandpass(Extinction):
+    _wave: Tensor
+    _trans: Tensor
+
+    @property
+    def minwave(self) -> _t:
+        return self._wave[..., 0]
+
+    @property
+    def maxwave(self) -> _t:
+        return self._wave[..., -1]
+
+    @cached_property
+    def wave(self) -> Tensor:
+        return _mid_many(self._wave, (-1,))
+
+    @cached_property
+    def trans(self) -> Tensor:
+        return self.linear(self.wave)
+
+    @cached_property
+    def dwave(self) -> Tensor:
+        return _diff_one(self._wave, -1)
+
+    @cached_property
+    def trans_dwave(self) -> Tensor:
+        return self.trans * self.dwave
+
+
+# @dataclass
+# class DiscretisedBandpass(Bandpass):
+#     minwave: _t
+#     maxwave: _t
+#     dwave: _t
+#
+#     @property
+#     def wave(self):
+#         Dwave = self.maxwave - self.minwave
+#         return self.minwave + torch.linspace(0., 1., (Dwave/self.dwave).max().item()) * Dwave
+
+
+class InterpolatedBandpass(Bandpass, InterpolatedExtinction):
+    _mag_or_linear = InterpolatedExtinction._MagOrLinear.linear
+
+
+@dataclass
+class LinearInterpolatedBandpass(InterpolatedBandpass, Linear1dInterpolatedExtinction):
+    _interp_data: tuple[Tensor, Tensor]
+    # de-classmethod-ify...
+    _interpolate = Linear1dInterpolatedExtinction._interpolate.__func__
+    _interp = getattr_static(Linear1dInterpolatedExtinction, '_interp').__func__
+
+    @property
+    def _wave(self):
+        return self._interp.x
+
+    @property
+    def _trans(self):
+        return self._interp.y
