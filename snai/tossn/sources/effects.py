@@ -2,6 +2,7 @@ import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from inspect import signature
+from math import pi
 
 import forge
 from feign import copy_function, feign
@@ -59,7 +60,7 @@ class Redshifted(AffectedSource):
         return 1 / (1+self.z)
 
     def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
-        return (a := self.scale_factor)**3 * super().flux(a*phase, a*wave, **kwargs)
+        return (a := self.scale_factor.unsqueeze(-1))**3 * super().flux(a*phase, a*wave, **kwargs)
 
 
 class Extincted(AffectedSource):
@@ -67,3 +68,15 @@ class Extincted(AffectedSource):
 
     def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
         return self.ext.linear(wave) * super().flux(phase, wave, **kwargs)
+
+
+@dataclass
+class Cosmology(AffectedSource):
+    from phytorch.cosmology.core import FLRW
+
+    cosmo: UtilityBase.private(FLRW)
+    z_cosmo: _t = 0
+
+    def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
+        # TODO: broadcasting of z_cosmo
+        return super().flux(phase, wave, **kwargs) / (4*pi * self.cosmo.comoving_distance(self.z_cosmo.unsqueeze(-1))**2)

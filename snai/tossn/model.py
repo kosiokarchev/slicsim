@@ -49,7 +49,8 @@ class Field:
 
 
 class LightcurveModel:
-    def __init__(self, source: Source, field: Field):
+    def __init__(self, source: Source, field: Field, **kwargs):
+        super().__init__(**kwargs)
         self.source = source
         self.field = field
 

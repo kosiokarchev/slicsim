@@ -55,7 +55,7 @@ class InterpolatedBandpass(Bandpass, InterpolatedExtinction):
     _mag_or_linear = InterpolatedExtinction._MagOrLinear.linear
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class LinearInterpolatedBandpass(InterpolatedBandpass, Linear1dInterpolatedExtinction):
     _interp_data: tuple[Tensor, Tensor]
     # de-classmethod-ify...
