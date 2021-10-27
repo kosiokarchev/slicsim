@@ -1,0 +1,7 @@
+{% extends "bayesn.yaml" %}
+{% block guide %}
+  - cls: DiagonalNormalSamplingGroup
+    name: diag
+    match: [ Om0, Ode0, Rv, tau, delta_M, Av, theta, W, W0 ]
+    init_scale: 0.01
+{% endblock %}
