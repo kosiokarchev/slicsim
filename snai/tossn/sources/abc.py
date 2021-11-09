@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Callable, ClassVar, Tuple
 
+from phytorch.interpolate import LinearNDGridInterpolator
+from phytorch.interpolate.abc import AbstractNDInterpolator
 from phytorch.units.cgs import erg
 from phytorch.units.si import angstrom, second
-from phytorch.units.Unit import Unit
-from pyrofit.utils.interpolate import LinearNDGridInterpolator
-from pyrofit.utils.interpolate.abc import AbstractNDInterpolator
+from phytorch.units.unit import Unit
 from torch import Tensor
 
 from ..utils import _t, cached_property, Delayed

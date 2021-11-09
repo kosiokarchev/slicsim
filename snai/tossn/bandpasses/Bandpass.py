@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from inspect import getattr_static
 
-from pyrofit.utils.torchutils import _diff_one, _mid_many
+import torch
+from phytorch.utils import _mid_many
 from torch import Tensor
 
 from ..extinction import Extinction, InterpolatedExtinction, Linear1dInterpolatedExtinction
@@ -32,7 +33,7 @@ class Bandpass(Extinction):
 
     @cached_property
     def dwave(self) -> Tensor:
-        return _diff_one(self._wave, -1)
+        return torch.diff(self._wave, -1)
 
     @cached_property
     def trans_dwave(self) -> Tensor:

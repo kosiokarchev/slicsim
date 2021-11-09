@@ -4,8 +4,8 @@ from typing import Callable, Protocol, Set, Union
 
 import torch
 from more_itertools import first
-from pyrofit.utils.interpolate import Linear1dInterpolator
-from pyrofit.utils.torchutils import _mid_many
+from phytorch.interpolate import Linear1dInterpolator
+from phytorch.utils import _mid_many
 from torch import Tensor
 
 from ..utils import _t

@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Callable, ClassVar, Sequence, Type, Union
 
 import torch
-from pyrofit.utils.interpolate import Linear1dInterpolator, LinearNDGridInterpolator
-from pyrofit.utils.interpolate.abc import AbstractBatchedInterpolator
+from phytorch.interpolate import Linear1dInterpolator, LinearNDGridInterpolator
+from phytorch.interpolate.abc import AbstractBatchedInterpolator
 from torch import Tensor
 
 from ..utils import _t, cached_property, DataRegistry, Delayed
