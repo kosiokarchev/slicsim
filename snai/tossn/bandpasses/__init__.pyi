@@ -1,4 +1,4 @@
-from .Bandpass import LinearInterpolatedBandpass
+from .bandpass import LinearInterpolatedBandpass
 
 
 (
@@ -82,6 +82,14 @@ nircam_f430m,
 nircam_f444w,
 nircam_f460m,
 nircam_f480m,
+roman_wfi_f062,
+roman_wfi_f087,
+roman_wfi_f106,
+roman_wfi_f129,
+roman_wfi_f146,
+roman_wfi_f158,
+roman_wfi_f184,
+roman_wfi_f213,
 sdss_g,
 sdss_i,
 sdss_r,
