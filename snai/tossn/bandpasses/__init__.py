@@ -1,6 +1,6 @@
 import torch
 
-from .Bandpass import LinearInterpolatedBandpass
+from .bandpass import LinearInterpolatedBandpass
 from ..utils import _torch_load, datadir
 
 
@@ -18,7 +18,10 @@ def __getattr__(name):
         name = name[2:]
 
     try:
-        globals()[name] = ret = LinearInterpolatedBandpass(_torch_load(next(bandpassdir.rglob(f'*/{name}.pt'))))
+        globals()[name] = ret = LinearInterpolatedBandpass(
+            name,
+            _torch_load(next(bandpassdir.rglob(f'*/{name}.pt')))
+        )
         return ret
     except StopIteration:
         raise NameError(f'No bandpass named \'{name}\'.') from None

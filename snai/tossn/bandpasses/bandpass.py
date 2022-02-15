@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from inspect import getattr_static
 
@@ -11,9 +12,12 @@ from ..extinction import Extinction, InterpolatedExtinction, Linear1dInterpolate
 from ..utils import _t, cached_property
 
 
+@dataclass(unsafe_hash=True)
 class Bandpass(Extinction):
-    _wave: Tensor
-    _trans: Tensor
+    name: str
+
+    _wave: Tensor = dataclasses.field(init=False, repr=False)
+    _trans: Tensor = dataclasses.field(init=False, repr=False)
 
     @property
     def minwave(self) -> _t:
@@ -33,7 +37,7 @@ class Bandpass(Extinction):
 
     @cached_property
     def dwave(self) -> Tensor:
-        return torch.diff(self._wave, -1)
+        return torch.diff(self._wave, dim=-1)
 
     @cached_property
     def trans_dwave(self) -> Tensor:
@@ -58,7 +62,7 @@ class InterpolatedBandpass(Bandpass, InterpolatedExtinction):
 
 @dataclass(unsafe_hash=True)
 class LinearInterpolatedBandpass(InterpolatedBandpass, Linear1dInterpolatedExtinction):
-    _interp_data: tuple[Tensor, Tensor]
+    _interp_data: tuple[Tensor, Tensor] = dataclasses.field(repr=False)
     # de-classmethod-ify...
     _interpolate = Linear1dInterpolatedExtinction._interpolate.__func__
     _interp = getattr_static(Linear1dInterpolatedExtinction, '_interp').__func__
