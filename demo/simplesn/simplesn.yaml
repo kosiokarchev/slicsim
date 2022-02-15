@@ -1,0 +1,117 @@
+imports: !import
+  - from torch.distributions import PowerTransform
+  - from pyro.distributions import Uniform, Normal, HalfNormal, MultivariateNormal, InverseGamma, TransformedDistribution
+  - from clipppy.distributions import conundis
+  - from phytorch.cosmology.module import CosmologyModule
+  - from phytorch.cosmology.drivers.analytic import LambdaCDM
+defs:
+  zcmb: &zcmb !pt {{ zcmb_name }}
+  scale_tril: &scale_tril !pt {{ scale_tril_name }}
+  N: &N !py:len [*zcmb]
+
+  cosmo: &cosmo !py:CosmologyModule
+    cls: !py:LambdaCDM
+    method: distmod
+    unsqueeze: 1
+
+  priors:
+    Om0: &prior_Om0 !py:Uniform [0, 2]
+    Ode0: &prior_Ode0 !py:Uniform [0, 2]
+    alpha: &prior_alpha !py:Uniform [0, 1]
+    beta: &prior_beta !py:Uniform [0, 4]
+    mean_M0: &prior_meanM0 !py:Normal [-19.3, 2]
+{#    sigma_res: &prior_sigma_res !py:HalfNormal 0.2#}
+{#    sigma_x: &prior_sigma_z !py:HalfNormal 0.05#}
+    sigma_res: &prior_sigma_res !py:TransformedDistribution
+      - !py:conundis.InverseGamma {/: 0.003, /: 0.003, constraint_upper: 1}
+      - [!py:PowerTransform [0.5]]
+    sigma_z: &prior_sigma_z !py:TransformedDistribution
+      - !py:conundis.InverseGamma {/: 0.0003, /: 0.0003, constraint_upper: 0.1}
+      - [!py:PowerTransform [0.5]]
+
+{% if not gen %}
+  data: &data !pt {{ data_name }}
+conditioning:
+  data: ![] [*data, data]
+{% endif %}
+model: !Sampler:data
+  to_event: 0
+  /: !Stochastic
+    - !py:MultivariateNormal
+    - scale_tril: *scale_tril
+      loc: !Stochastic
+        - !py:pack_data
+        - m: !Deterministic:m
+            event_dim: 1
+            /: !Stochastic
+              - !+
+              - a: !Stochastic
+                  - *cosmo
+                  - z: !Sampler
+                      to_event: 1
+                      /: !Stochastic
+                        - !py:conundis.Normal
+                        - constraint_lower: 0.005
+                          loc: *zcmb
+                          scale: !Stochastic
+                            - !*
+                            - a: !UnsqueezeEffect
+                                - !Sampler:sigma_z {/: *prior_sigma_z, init: 0.04}
+                              b: !+ [1, *zcmb]
+                    Om0:  !Sampler {/: *prior_Om0, init: 0.3}
+                    Ode0: !Sampler {/: *prior_Ode0, init: 0.7}
+                b: !Deterministic:M
+                  event_dim: 1
+                  /: !Stochastic
+                    - !py:phillips
+                    - alpha: !Sampler {/: *prior_alpha, init: 0.14}
+                      beta:  !Sampler {/: *prior_beta, init: 3.1}
+                      M0: !Sampler
+                        /: !Stochastic
+                          - !py:Normal
+                          - loc: !Sampler:mean_M0 {/: *prior_meanM0, init: -19.5}
+                            scale: !Sampler:sigma_res {/: *prior_sigma_res, init: 0.1}
+                        indep: [*N]
+                        to_event: 0
+
+                      {% for varname, std in (('x1', 1), ('c', 0.1)) %}
+                      {{ varname }}: !AllEncapsulator
+                        - !Sampler
+                          /: !Stochastic
+                            - !py:Normal
+                            - loc: !Sampler:mean_{{ varname }}
+                                /: !py:Normal [0, {{ 10 * std }}]
+                                init: 0.
+                              scale: !Effect
+                                - !eval "lambda x: 10**x"
+                                - !Sampler:log10_R_{{ varname }}
+                                  /: !py:Uniform [-5, 2]
+                                  init: !py:math.log10 {{ std }}
+                          indep: [*N]
+                          to_event: 0
+                        - &{{ varname }}
+                      {% endfor %}
+          x1: *x1
+          c: *c
+nre:
+  param_names: [ Om0, Ode0, sigma_z, mean_M0, sigma_res, alpha, beta ]
+  obs_names: [ data, z ]
+  dataset_cls: !py:clipppy.commands.nre.CPDataset
+  dataset_args:
+    ranges:
+      mean_M0: [-20., -19.]
+      mean_x1: [-1., 1.]
+      mean_c:  [-0.1, 0.1]
+      log10_R_x1: [-0.2, 0.2]
+      log10_R_c:  [-1.2, -0.8]
+guide:
+{#  - cls: MVN#}
+{#    name: mvn#}
+{#    init_scale: 0.05#}
+  - cls: HPMVN
+    name: hpmvn
+    diag: [M0, x1, c]
+    hdims: {M0: 0, x1: 0, c: 0}
+    init_scale_full: 0.1
+    init_scale_diag: 0.01
+    init_scale_const_corr: 0.01
