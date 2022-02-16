@@ -23,11 +23,13 @@ defs:
 {#    sigma_res: &prior_sigma_res !py:HalfNormal 0.2#}
 {#    sigma_x: &prior_sigma_z !py:HalfNormal 0.05#}
     sigma_res: &prior_sigma_res !py:TransformedDistribution
-      - !py:conundis.InverseGamma {/: 0.003, /: 0.003, constraint_upper: 1}
+      - !py:conundis.InverseGamma {/: 0.003, /: 0.003, constraint_lower: !eval 1e-3**2, constraint_upper: 1}
       - [!py:PowerTransform [0.5]]
     sigma_z: &prior_sigma_z !py:TransformedDistribution
-      - !py:conundis.InverseGamma {/: 0.0003, /: 0.0003, constraint_upper: 0.1}
+      - !py:conundis.InverseGamma {/: 0.0003, /: 0.0003, constraint_lower: !eval 1e-3**2, constraint_upper: !eval 0.2**2}
       - [!py:PowerTransform [0.5]]
+
+    zrate_b: &prior_zrate_b !py:Uniform [2, 4]
 
 {% if not gen %}
   data: &data !pt {{ data_name }}
@@ -52,12 +54,17 @@ model: !Sampler:data
                       /: !Stochastic
                         - !py:conundis.Normal
                         - constraint_lower: 0.005
-                          loc: *zcmb
+                          constraint_upper: 2.
+                          loc: !AllEncapsulator
+                            - !Deterministic:zobs
+                              event_dim: 1
+                              /: *zcmb
+                            - &zobs
                           scale: !Stochastic
                             - !*
                             - a: !UnsqueezeEffect
                                 - !Sampler:sigma_z {/: *prior_sigma_z, init: 0.04}
-                              b: !+ [1, *zcmb]
+                              b: !Stochastic [!+ , {a: 1, b: *zobs}]
                     Om0:  !Sampler {/: *prior_Om0, init: 0.3}
                     Ode0: !Sampler {/: *prior_Ode0, init: 0.7}
                 b: !Deterministic:M
@@ -95,7 +102,7 @@ model: !Sampler:data
           c: *c
 nre:
   param_names: [ Om0, Ode0, sigma_z, mean_M0, sigma_res, alpha, beta ]
-  obs_names: [ data, z ]
+  obs_names: [ data ]
   dataset_cls: !py:clipppy.commands.nre.CPDataset
   dataset_args:
     ranges:

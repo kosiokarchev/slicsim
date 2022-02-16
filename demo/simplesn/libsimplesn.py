@@ -138,7 +138,7 @@ class SimpleSN:
 
     @property
     def nre_losses_name(self):
-        return self.resdir / f'{self._vi_prefix}-losses.pt'
+        return self.resdir / f'{self._nre_prefix}-losses.pt'
 
     @property
     def nre_losses(self):
