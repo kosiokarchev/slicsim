@@ -1,51 +1,128 @@
-from typing import ClassVar
+from typing import Callable, ClassVar, Mapping, TYPE_CHECKING
 
 import torch
-from phytorch.interpolate import LinearNDGridInterpolator
 from torch import Size, Tensor
 
+from phytorch.interpolate import interp2d
+from phytorch.interpolate.splines import SplineNd
+from phytorch.utils.broadcast import broadcast_cat
 from .hsiao import HsiaoSource
-from ..extinction import Fitzpatrick99
+from ..utils import _t, cached_property, DataRegistry, Delayed
+from ..utils.utility_base import UtilityBase
 
 
-class BayeSN(HsiaoSource):
+class BayeSNSource(HsiaoSource):
     bayesn_phase: ClassVar[Tensor] = torch.tensor([-10, 0, 10, 20, 30, 40])  # days
-    # bayesn_phase: ClassVar[Tensor] = torch.linspace(-10, 40, 51)  # days
-    bayesn_wave: ClassVar[Tensor] = torch.tensor([0.15, 0.22, 0.32, 0.43, 0.54, 0.62, 0.77, 1.04, 1.2, 1.65]) * 1e4  # angstrom
+    bayesn_wave: ClassVar[Tensor] = (  # angstrom
+        torch.tensor([0.3, 0.43, 0.49, 0.54, 0.62, 0.77, 0.87, 1.04, 1.24, 1.65, 1.85]) * 1e4
+    )
 
-    bayesn_grid_shape: ClassVar[Size] = Size([bayesn_phase.shape[-1], bayesn_wave.shape[-1]])
-    bayesn_ngrid: ClassVar[int] = bayesn_grid_shape.numel()
+    def sed(self, phase, wave, **kwargs) -> Tensor:
+        return interp2d(phase, wave, self.grid_flux,
+                        self.grid_phase[(0, -1),], self.grid_wave[(0, -1),],
+                        mode='bicubic', align_corners=True)
+
+    @classmethod
+    @cached_property
+    def bayesn_spline(cls) -> SplineNd:
+        return SplineNd(cls.bayesn_phase, cls.bayesn_wave)
+
+
+    if TYPE_CHECKING:
+        bayesn_grid_shape: ClassVar[Size]
+        bayesn_ngrid: ClassVar[int]
+    else:
+        @classmethod
+        @cached_property
+        def bayesn_grid_shape(cls):
+            return Size([cls.bayesn_phase.shape[-1], cls.bayesn_wave.shape[-1]])
+
+        @classmethod
+        @cached_property
+        def bayesn_ngrid(cls):
+            return cls.bayesn_grid_shape.numel()
+
+
+    A: UtilityBase.private(_t)
 
     M0 = -19.5
-    Rv: Tensor
-    Av: Tensor
-    E: Tensor
-    delta_M: Tensor
-    theta: Tensor
-    W: Tensor
+
     W0: Tensor
+    W1: Tensor
+    L: Tensor
+
+    delta_M: _t = 0.
+    theta: _t = 0.
+    e: Tensor
+
+    E: UtilityBase.private(Tensor)
+    _E_shape = None
 
     def set_params(self, **kwargs):
         super().set_params(**kwargs)
-        self.E = self.E.unflatten(-1, self.bayesn_grid_shape)
-        self.W = self.W.unflatten(-1, self.bayesn_grid_shape)
-        self.W0 = self.W0.unflatten(-1, self.bayesn_grid_shape)
+
+        self.E = (self.L @ self.e.unsqueeze(-1)).squeeze(-1).unflatten(-1, self._E_shape or self.bayesn_grid_shape)
 
     def flux(self, phase: Tensor, wave: Tensor, **kwargs):
+        theta = self.theta[..., None, None] if torch.is_tensor(self.theta) else self.theta
         # eq. (12)
         return super().flux(phase, wave) * 10 ** (-0.4 * (
-            self.M0
-            + self.delta_M.unsqueeze(-1)
-            + (self.theta.unsqueeze(-1)
-               * self._interpolate(
-                    LinearNDGridInterpolator((self.bayesn_phase, self.bayesn_wave), self.W, channel_ndim=1),
-                    phase, wave)
-               ).sum(-2)
-            + self._interpolate(
-                LinearNDGridInterpolator((self.bayesn_phase, self.bayesn_wave), self.W0, channel_ndim=0),
-                phase, wave)
-            + self._interpolate(
-                LinearNDGridInterpolator((self.bayesn_phase, self.bayesn_wave), self.E, channel_ndim=0),
-                phase, wave)
-            + self.Av.unsqueeze(-1) * Fitzpatrick99.mag(wave, Rv=self.Rv)
+            self.M0 + self.delta_M
+            + self.bayesn_spline.evaluate(
+                self.W0 + theta * self.W1 + self.E,
+                phase.clamp(*self.bayesn_phase[(0, -1),]),
+                wave.clamp(*self.bayesn_wave[(0, -1),]),
+            )
+            # torch.where(
+            #     torch.logical_and(
+            #         torch.logical_and(phase >= self.bayesn_phase[0],
+            #                           phase <= self.bayesn_phase[-1]),
+            #
+            #         torch.logical_and(wave >= self.bayesn_wave[0],
+            #                           wave <= self.bayesn_wave[-1]),
+            #     ),
+            #     self.bayesn_spline.evaluate(y, phase, wave),
+            #     0.
+            # )
         ))
+
+
+class TrainedBayeSNSource(BayeSNSource, Delayed):
+    # TODO: multiple delayed data sources
+    _bayesn_data_func: ClassVar[Callable[[], Mapping]]
+
+    @classmethod
+    @cached_property
+    def _delayed_data(cls) -> Mapping:
+        return dict(enumerate(cls._delayed_data_func()), **cls._bayesn_data_func())
+
+    bayesn_phase: ClassVar[Tensor] = Delayed.attribute('bayesn_phase', Tensor)
+    bayesn_wave: ClassVar[Tensor] = Delayed.attribute('bayesn_wave', Tensor)
+
+    W0: ClassVar[Tensor] = Delayed.attribute('W0', Tensor)
+    W1: ClassVar[Tensor] = Delayed.attribute('W1', Tensor)
+    L: ClassVar[Tensor] = Delayed.attribute('L', Tensor)
+
+    def set_params(self, **kwargs):
+        super().set_params(**kwargs)
+
+        _E = self.E.new_zeros(self.bayesn_grid_shape[0], 1)
+        self.E = broadcast_cat((_E, self.E, _E))
+
+
+class BayeSNM20Source(TrainedBayeSNSource):
+    _bayesn_data_func = DataRegistry.bayesn_m20
+
+    _E_shape = torch.Size((6, 7))
+
+
+class BayeSNT21Source(TrainedBayeSNSource):
+    _bayesn_data_func = DataRegistry.bayesn_t21
+
+    _E_shape = torch.Size((6, 4))
+
+
+class BayeSNW22Source(TrainedBayeSNSource):
+    _bayesn_data_func = DataRegistry.bayesn_w22
+
+    _E_shape = torch.Size((6, 9))
