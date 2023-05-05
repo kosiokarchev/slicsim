@@ -8,6 +8,9 @@ from ..model import Field
 
 class SurveyData(TypedDict, total=False):
     field: Field
+
+
+class CountsSurveyData(SurveyData):
     zp_flux: Quantity
     zp_mag_mean: Tensor
     zp_mag_std: Tensor
@@ -15,3 +18,7 @@ class SurveyData(TypedDict, total=False):
     sky: Quantity
     area: Quantity
     gain: Quantity
+
+
+class FluxcalSurveyData(SurveyData):
+    fluxcalerr: Tensor

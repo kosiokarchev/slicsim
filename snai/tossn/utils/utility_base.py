@@ -38,7 +38,7 @@ class UtilityBase:
 
     @classmethod
     def fix_call_signature(cls):
-        return cls.__call__
+        # return cls.__call__
         return feign(copy_function(cls.__call__), inspect.signature(forge.compose(*(
             forge.delete(name)
             for name, param in inspect.signature(cls.__call__).parameters.items()

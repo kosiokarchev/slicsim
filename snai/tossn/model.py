@@ -1,18 +1,20 @@
-import dataclasses
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Iterable, Sequence, Union
+from typing import Iterable, Mapping, Sequence, Union, cast
 
-from torch_scatter import segment_csr
-from typing_extensions import TypeAlias
 import numpy as np
 import torch
+from more_itertools import bucket
+from torch import Tensor
+from typing_extensions import TypeAlias
 
 from phytorch.constants import c, h
 from phytorch.quantities import Quantity
+from phytorch.units import Unit
 from phytorch.units.si import angstrom, day
 
 from .bandpasses.bandpass import Bandpass
+from .bandpasses.magsys import MagSys, AB
 from .sources.abc import Source
 from .utils import _t
 
@@ -25,6 +27,7 @@ _bands_T: TypeAlias = Sequence[Union[Bandpass, '_bands_T']]
 class Field:
     times: _times_T
     bands: _bands_T
+    magsys: MagSys = AB
 
     @dataclass
     class _evpT:
@@ -46,8 +49,10 @@ class Field:
                                 device=self.times.device)
 
         def reduce_add(self, t):
-            # TODO: reduction produces quantity with None unit
-            return segment_csr(t, self.indptr.view(*(t.ndim-1)*(1,), -1)).value * t.unit
+            from torch_scatter import segment_csr
+
+            # TODO: torch_scatter with units
+            return segment_csr(t.value, self.indptr.view(*(t.ndim-1)*(1,), -1)) * t.unit
 
 
     @cached_property
@@ -65,16 +70,35 @@ class Field:
         return self._evpT(sizes, *(
             Quantity(t, unit=u) if not isinstance(t, Quantity) else t
             for t, u in zip((
-                torch.atleast_1d(torch.as_tensor(self.times)).repeat_interleave(torch.tensor(sizes), dim=-1),
+                torch.atleast_1d(torch.as_tensor(self.times, dtype=torch.get_default_dtype())).repeat_interleave(torch.tensor(sizes), dim=-1),
                 waves, trans_dwaves
             ), (day, angstrom, angstrom))))
 
+    @cached_property
+    def band_indices(self) -> Mapping[Bandpass, Sequence[int]]:
+        return dict(zip(b := bucket(range(len(self.bands)), lambda i: self.bands[i]), (list(b[key]) for key in b)))
 
+    @cached_property
+    def band_zpfluxes(self) -> Quantity:
+        return cast(Quantity, torch.stack([self.magsys.zp_flux(b) for b in self.bands]))
+
+    @cached_property
+    def band_zpcounts(self) -> Quantity:
+        return cast(Quantity, torch.stack([self.magsys.zp_counts(b) for b in self.bands]))
+
+    def cache(self):
+        self._evaluation_points
+        self.band_indices
+        self.band_zpfluxes
+        self.band_zpcounts
+        return self
+
+
+
+@dataclass
 class LightcurveModel:
-    def __init__(self, source: Source, field: Field, **kwargs):
-        super().__init__(**kwargs)
-        self.source = source
-        self.field = field
+    source: Source
+    field: Field
 
     def _evaluate_points(self, **kwargs) -> Quantity:
         times, waves, trans_dwaves = self.field._evaluation_points
@@ -85,10 +109,16 @@ class LightcurveModel:
             * trans_dwaves
         )
 
-    def bandflux(self, **kwargs):
+    def bandflux(self, **kwargs) -> Quantity:
         return self.field._evaluation_points.reduce_add(self._evaluate_points(**kwargs))
 
-    def bandcounts(self, **kwargs):
+    def bandfluxcal(self, **kwargs) -> Tensor:
+        return (self.bandcounts(**kwargs) / self.field.band_zpfluxes).to(Unit()).value
+
+    def bandcounts(self, **kwargs) -> Quantity:
         return self.field._evaluation_points.reduce_add(
             self._evaluate_points(**kwargs) / self.field._evaluation_points.energies
         )
+
+    def bandcountscal(self, **kwargs) -> Tensor:
+        return (self.bandcounts(**kwargs) / self.field.band_zpcounts).to(Unit()).value

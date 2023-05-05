@@ -1,8 +1,7 @@
 import importlib.resources
 import pathlib
-import typing as tp
 from functools import partial
-from inspect import getattr_static
+from typing import Callable, ClassVar, Mapping, Optional, Type, TypeVar, Union
 
 import torch
 from torch import Tensor
@@ -14,7 +13,7 @@ from .. import __package__ as __root_package__
 datadir: pathlib.Path = importlib.resources.files(__root_package__) / 'data'
 
 
-_T = tp.TypeVar('_T')
+_T = TypeVar('_T')
 
 
 # TODO: CHECK THIS!!!!
@@ -66,11 +65,11 @@ class DataRegistry:
 
 
 class Delayed:
-    _delayed_data_func: tp.ClassVar[tp.Optional[tp.Callable[[], tp.Mapping]]] = None
+    _delayed_data_func: ClassVar[Optional[Callable[[], Mapping]]] = None
 
     @classmethod
     @cached_property
-    def _delayed_data(cls) -> tp.Mapping:
+    def _delayed_data(cls) -> Mapping:
         return cls._delayed_data_func()
 
     _nokey = object()
@@ -86,8 +85,8 @@ class Delayed:
 
     # noinspection PyUnusedLocal
     @classmethod
-    def attribute(cls, key=_nokey, typ: tp.Type[_T] = None) -> _T:
+    def attribute(cls, key=_nokey, typ: Type[_T] = None) -> _T:
         return classmethod(cls.DelayedAnnotated(key=key))
 
 
-_t = tp.Union[float, Tensor]
+_t = Union[float, Tensor]
