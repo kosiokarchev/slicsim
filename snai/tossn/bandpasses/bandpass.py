@@ -5,19 +5,22 @@ from dataclasses import dataclass
 from inspect import getattr_static
 
 import torch
-from phytorch.utils import _mid_many
 from torch import Tensor
 
-from ..extinction import Extinction, InterpolatedExtinction, Linear1dInterpolatedExtinction
+from phytorch.units.si import angstrom
+from phytorch.utils import _mid_many
+
+from ..extinction import Extinction, InterpolatedExtinction
 from ..utils import _t, cached_property
+from ..utils.interpolated import Linear1dInterpolated
 
 
 @dataclass(unsafe_hash=True)
 class Bandpass(Extinction):
     name: str
 
-    _wave: Tensor = dataclasses.field(init=False, repr=False)
-    _trans: Tensor = dataclasses.field(init=False, repr=False)
+    _wave: Tensor = dataclasses.field(init=False, repr=False, compare=False, hash=False)
+    _trans: Tensor = dataclasses.field(init=False, repr=False, compare=False, hash=False)
 
     @property
     def minwave(self) -> _t:
@@ -43,6 +46,13 @@ class Bandpass(Extinction):
     def trans_dwave(self) -> Tensor:
         return self.trans * self.dwave
 
+    @cached_property
+    def uwave(self) -> Tensor:
+        return self.wave * angstrom
+
+    @cached_property
+    def utrans_dwave(self) -> Tensor:
+        return self.trans_dwave * angstrom
 
 # @dataclass
 # class DiscretisedBandpass(Bandpass):
@@ -61,11 +71,11 @@ class InterpolatedBandpass(Bandpass, InterpolatedExtinction):
 
 
 @dataclass(unsafe_hash=True)
-class LinearInterpolatedBandpass(InterpolatedBandpass, Linear1dInterpolatedExtinction):
-    _interp_data: tuple[Tensor, Tensor] = dataclasses.field(repr=False)
+class LinearInterpolatedBandpass(InterpolatedBandpass, Linear1dInterpolated):
+    _interp_data: tuple[Tensor, Tensor] = dataclasses.field(repr=False, compare=False, hash=False)
     # de-classmethod-ify...
-    _interpolate = Linear1dInterpolatedExtinction._interpolate.__func__
-    _interp = getattr_static(Linear1dInterpolatedExtinction, '_interp').__func__
+    _interpolate = Linear1dInterpolated._interpolate.__func__
+    _interp = getattr_static(Linear1dInterpolated, '_interp').__func__
 
     @property
     def _wave(self):

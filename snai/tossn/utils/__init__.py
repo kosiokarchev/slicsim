@@ -58,6 +58,8 @@ class DataRegistry:
     extinction_FM07 = _regtorch('colourlaws/FM07.pt')
     extinction_F99 = _regtorch('colourlaws/F99.pt')
 
+    magsys_Vega = _regtorch('magsys/Vega.pt')
+
 
 class Delayed:
     _delayed_data_func: tp.ClassVar[tp.Optional[tp.Callable[[], tp.Mapping]]] = None

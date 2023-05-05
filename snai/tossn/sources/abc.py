@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, ClassVar, Tuple
 
 from phytorch.interpolate import LinearNDGridInterpolator
-from phytorch.interpolate.abc import AbstractNDInterpolator
+from phytorch.interpolate.abc import AbstractBatchedInterpolator
 from phytorch.units.cgs import erg
 from phytorch.units.si import angstrom, second
 from phytorch.units.unit import Unit
@@ -35,7 +35,7 @@ class ColouredSource(Source, ABC):
 
 class AbstractInterpSource(Source, ABC):
     @staticmethod
-    def _interpolate(ipol: AbstractNDInterpolator, phase, wave):
+    def _interpolate(ipol: AbstractBatchedInterpolator, phase, wave):
         return ipol(ipol.interp_input(phase, wave))
 
 
