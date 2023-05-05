@@ -5,7 +5,7 @@ from inspect import signature
 from math import pi
 
 import forge
-import torch
+
 from feign import copy_function, feign
 
 from .abc import Source
@@ -49,8 +49,7 @@ class Phaseshifted(AffectedSource):
     phase0: _t = 0
 
     def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
-        # TODO: broadcasting of phase0
-        return super().flux(phase - torch.as_tensor(self.phase0).unsqueeze(-1), wave, **kwargs)
+        return super().flux(phase - self.phase0, wave, **kwargs)
 
 
 @dataclass
@@ -62,23 +61,31 @@ class Redshifted(AffectedSource):
         return 1 / (1+self.z)
 
     def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
-        return (a := self.scale_factor.unsqueeze(-1))**3 * super().flux(a*phase, a*wave, **kwargs)
-
-
-class Extincted(AffectedSource):
-    ext: UtilityBase.private(Extinction)
-
-    def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
-        return self.ext.linear(wave) * super().flux(phase, wave, **kwargs)
+        return (a := self.scale_factor)**3 * super().flux(a*phase, a*wave, **kwargs)
 
 
 @dataclass
-class Cosmology(AffectedSource):
+class Extincted(AffectedSource):
+    ext: UtilityBase.private(Extinction)
+    A: _t = 1
+
+    def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
+        return self.ext.linear(wave, **kwargs)**self.A * super().flux(phase, wave, **kwargs)
+
+
+class Distance(AffectedSource):
+    from phytorch.units.astro import pc
+
+    def flux(self, phase: _t, wave: _t, distance=10*pc, **kwargs):
+        return super().flux(phase, wave, **kwargs) / (4*pi * distance**2)
+
+
+@dataclass
+class Cosmology(Distance):
     from phytorch.cosmology.core import FLRW
 
     cosmo: UtilityBase.private(FLRW)
     z_cosmo: _t = 0
 
     def flux(self, phase: _t, wave: _t, **kwargs) -> _t:
-        # TODO: broadcasting of z_cosmo
-        return super().flux(phase, wave, **kwargs) / (4*pi * self.cosmo.comoving_distance(torch.as_tensor(self.z_cosmo).unsqueeze(-1))**2)
+        return super().flux(phase, wave, self.cosmo.comoving_transverse_distance(self.z_cosmo), **kwargs)
