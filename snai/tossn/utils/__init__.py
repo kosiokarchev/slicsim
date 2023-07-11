@@ -45,9 +45,9 @@ def _regtorch(path, **kwargs):
 class DataRegistry:
     hsiao = _regtorch('sources/Hsiao.pt')
 
-    bayesn_m20 = _regtorch('sources/BayeSN-M20.pt')
-    bayesn_t21 = _regtorch('sources/BayeSN-T21.pt')
-    bayesn_w22 = _regtorch('sources/BayeSN-W22.pt')
+    bayesn_M20 = _regtorch('sources/BayeSN-M20.pt')
+    bayesn_T21 = _regtorch('sources/BayeSN-T21.pt')
+    bayesn_W22 = _regtorch('sources/BayeSN-W22.pt')
 
     salt2_4 = _regtorch('sources/SALT2-4.pt')
     extinction_salt2_4 = _regtorch('colourlaws/SALT2-4.pt')
@@ -62,6 +62,7 @@ class DataRegistry:
     extinction_F99 = _regtorch('colourlaws/F99.pt')
 
     magsys_Vega = _regtorch('magsys/Vega.pt')
+    magsys_BD17 = _regtorch('magsys/BD17.pt')
 
 
 class Delayed:

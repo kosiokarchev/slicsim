@@ -5,7 +5,8 @@ from torch import Size, Tensor
 
 from phytorch.interpolate import interp2d
 from phytorch.interpolate.splines import SplineNd
-from phytorch.utils.broadcast import broadcast_cat
+from phytorchx import broadcast_cat
+
 from .hsiao import HsiaoSource
 from ..utils import _t, cached_property, DataRegistry, Delayed
 from ..utils.utility_base import UtilityBase
@@ -111,18 +112,18 @@ class TrainedBayeSNSource(BayeSNSource, Delayed):
 
 
 class BayeSNM20Source(TrainedBayeSNSource):
-    _bayesn_data_func = DataRegistry.bayesn_m20
+    _bayesn_data_func = DataRegistry.bayesn_M20
 
     _E_shape = torch.Size((6, 7))
 
 
 class BayeSNT21Source(TrainedBayeSNSource):
-    _bayesn_data_func = DataRegistry.bayesn_t21
+    _bayesn_data_func = DataRegistry.bayesn_T21
 
     _E_shape = torch.Size((6, 4))
 
 
 class BayeSNW22Source(TrainedBayeSNSource):
-    _bayesn_data_func = DataRegistry.bayesn_w22
+    _bayesn_data_func = DataRegistry.bayesn_W22
 
     _E_shape = torch.Size((6, 9))

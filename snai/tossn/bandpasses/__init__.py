@@ -1,5 +1,3 @@
-import torch
-
 from .bandpass import LinearInterpolatedBandpass
 from ..utils import _torch_load, datadir
 

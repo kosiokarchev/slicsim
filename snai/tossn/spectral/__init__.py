@@ -5,8 +5,9 @@ from typing import Callable, Protocol, Set, Union
 import torch
 from more_itertools import first
 from phytorch.interpolate import Linear1dInterpolator
-from phytorch.utils import _mid_many
 from torch import Tensor
+
+from phytorchx import mid_many
 
 from ..utils import _t
 
@@ -138,7 +139,7 @@ class LinearInterpolatedSpectralDensity(Linear1dInterpolator, InterpolatedSpectr
     _y_like_attrs = InterpolatedSpectralDensity._y_like_attrs | {grid_y}
 
     def _build_integral(self) -> Linear1dInterpolator:
-        y = (_mid_many(self.grid_y, (-1,)) * self.dx.squeeze(-1)).cumsum(-1)
+        y = (mid_many(self.grid_y, (-1,)) * self.dx.squeeze(-1)).cumsum(-1)
         return Linear1dInterpolator(self.grid_wave, torch.cat((
             y.new_zeros(1).expand(*y.shape[:-1], 1), y)))
 

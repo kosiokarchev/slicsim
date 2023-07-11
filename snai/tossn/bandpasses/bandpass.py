@@ -8,7 +8,7 @@ import torch
 from torch import Tensor
 
 from phytorch.units.si import angstrom
-from phytorch.utils import _mid_many
+from phytorchx import mid_many
 
 from ..extinction import Extinction, InterpolatedExtinction
 from ..utils import _t, cached_property
@@ -32,7 +32,7 @@ class Bandpass(Extinction):
 
     @cached_property
     def wave(self) -> Tensor:
-        return _mid_many(self._wave, (-1,))
+        return mid_many(self._wave, (-1,))
 
     @cached_property
     def trans(self) -> Tensor:

@@ -86,7 +86,12 @@ class Field:
     def band_zpcounts(self) -> Quantity:
         return cast(Quantity, torch.stack([self.magsys.zp_counts(b) for b in self.bands]))
 
-    def cache(self):
+    def cache(self, clear=False):
+        if clear:
+            del self._evaluation_points
+            del self.band_indices
+            del self.band_zpfluxes
+            del self.band_zpcounts
         self._evaluation_points
         self.band_indices
         self.band_zpfluxes

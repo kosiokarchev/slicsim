@@ -1,6 +1,7 @@
 import os
-from itertools import product
 from typing import Iterable, Mapping, Union
+
+import torch
 
 import snai.tossn.data
 import sncosmo as sn
@@ -40,6 +41,7 @@ bpmap = {
     '4shooter2': ('us', *'bvri'),
     'roman_wfi': stsci_fnames({'': (62, 87, 106, 129, 158, 184, 213, 146)}),
     'ztf': 'gri',
+    'ps1': ('open', *'grizyw'),
     'uvot': (*'buv', 'white', 'uvm2', 'uvw1', 'uvw2')
 }
 
@@ -50,7 +52,7 @@ for key, names in bpmap.items():
         'standard::' if key == 'snls3_landolt' else
         '' if 'wfc' in key or key in ('nircam', 'miri', 'roman_wfi') else
         'nic' if key == 'nic2' else
-        f'{key}::' if key in ('keplercam', '4shooter2', 'uvot')
+        f'{key}::' if key in ('keplercam', '4shooter2', 'uvot', 'ps1')
         else key
     )
     for name in names:
@@ -63,8 +65,8 @@ for key, names in bpmap.items():
                 print('EXISTS', fname)
             else:
                 os.makedirs(os.path.dirname(fname), exist_ok=True)
-                # torch.save((*(torch.as_tensor(a, dtype=torch.get_default_dtype())
-                #               for a in (bp.wave, bp.trans)),), fname)
+                torch.save((*(torch.as_tensor(a, dtype=torch.get_default_dtype())
+                              for a in (bp.wave, bp.trans)),), fname)
                 print(fname)
         except Exception as e:
             print(f'{key} (-> {_snkey}), {name} unsuccessful: {e}')
