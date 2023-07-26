@@ -4,7 +4,7 @@ import extinction
 
 
 wave = torch.linspace(1000, 20000, 191)
-Rvs = torch.linspace(0.1, 10, 100)
+Rvs = torch.linspace(0.1, 10, 91)
 
 torch.save(
     ((wave, Rvs), torch.tensor(np.stack([

@@ -1,4 +1,5 @@
 from abc import ABC
+from dataclasses import dataclass
 from enum import Enum
 
 import torch
@@ -10,13 +11,11 @@ from ..utils.interpolated import DelayedInterpolated, Interpolated, DelayedLinea
 
 
 class Extinction(ABC):
-    @classmethod
-    def mag(cls, wave: _t, **kwargs) -> _t:
-        return -2.5 * torch.log10(cls.linear(wave, **kwargs))
+    def mag(self, wave: _t, **kwargs) -> _t:
+        return -2.5 * torch.log10(self.linear(wave, **kwargs))
 
-    @classmethod
-    def linear(cls, wave: _t, **kwargs) -> _t:
-        return 10**(-0.4 * cls.mag(wave, **kwargs))
+    def linear(self, wave: _t, **kwargs) -> _t:
+        return 10**(-0.4 * self.mag(wave, **kwargs))
 
 
 class InterpolatedExtinction(Interpolated, Extinction, ABC):
@@ -38,9 +37,8 @@ class FM07(DelayedLinear1dInterpolated, InterpolatedExtinction):
 class LinearNDInterpolatedExtinction(InterpolatedExtinction):
     _interp_class = LinearNDGridInterpolator
 
-    @classmethod
-    def _interpolate(cls, wave: _t, *args, **kwargs) -> _t:
-        return cls._interp(LinearNDGridInterpolator.interp_input(wave, *args))
+    def _interpolate(self, wave: _t, *args, **kwargs) -> _t:
+        return self._interp(LinearNDGridInterpolator.interp_input(wave, *args))
 
 
 class DelayedLinearNDInterpolatedExtinction(
@@ -49,9 +47,11 @@ class DelayedLinearNDInterpolatedExtinction(
     pass
 
 
+@dataclass
 class Fitzpatrick99(DelayedLinearNDInterpolatedExtinction):
+    Rv: _t = 3.1
+
     _delayed_data_func = DataRegistry.extinction_F99
 
-    @classmethod
-    def _interpolate(cls, wave: _t, Rv: _t = 3.1, **kwargs) -> _t:
-        return super()._interpolate(wave, Rv)
+    def _interpolate(self, wave: _t, **kwargs) -> _t:
+        return super()._interpolate(wave, self.Rv)
