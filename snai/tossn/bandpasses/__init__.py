@@ -1,5 +1,7 @@
+import phytorchx
+
 from .bandpass import LinearInterpolatedBandpass
-from ..utils import _torch_load, datadir
+from ..utils import datadir
 
 
 bandpassdir = datadir / 'bandpasses'
@@ -16,10 +18,9 @@ def __getattr__(name):
         name = name[2:]
 
     try:
-        globals()[name] = ret = LinearInterpolatedBandpass(
-            name,
-            _torch_load(next(bandpassdir.rglob(f'*/{name}.pt')))
-        )
-        return ret
+        fname = next(bandpassdir.rglob(f'*/{name}.pt'))
     except StopIteration:
         raise NameError(f'No bandpass named \'{name}\'.') from None
+
+    globals()[name] = ret = LinearInterpolatedBandpass(name, phytorchx.load(fname))
+    return ret

@@ -2,6 +2,7 @@ from typing import Callable, ClassVar, Mapping, TYPE_CHECKING
 
 import torch
 from torch import Size, Tensor
+from typing_extensions import Self
 
 from phytorch.interpolate import interp2d
 from phytorch.interpolate.splines import SplineNd
@@ -21,12 +22,21 @@ class BayeSNSource(HsiaoSource):
     def sed(self, phase, wave, **kwargs) -> Tensor:
         return interp2d(phase, wave, self.grid_flux,
                         self.grid_phase[(0, -1),], self.grid_wave[(0, -1),],
-                        mode='bicubic', align_corners=True)
+                        mode='bilinear', align_corners=True)
 
     @classmethod
     @cached_property
     def bayesn_spline(cls) -> SplineNd:
         return SplineNd(cls.bayesn_phase, cls.bayesn_wave)
+
+
+    @property
+    def bayesn_grid_mag(self):
+        M, theta = (
+            _[..., None, None] if torch.is_tensor(_) else _
+            for _ in (self.M0 + self.delta_M, self.theta)
+        )
+        return M + self.W0 + theta * self.W1 + self.E
 
 
     if TYPE_CHECKING:
@@ -59,18 +69,17 @@ class BayeSNSource(HsiaoSource):
     E: UtilityBase.private(Tensor)
     _E_shape = None
 
-    def set_params(self, **kwargs):
-        super().set_params(**kwargs)
-
+    def set_params(self, **kwargs) -> Self:
+        ret = super().set_params(**kwargs)
         self.E = (self.L @ self.e.unsqueeze(-1)).squeeze(-1).unflatten(-1, self._E_shape or self.bayesn_grid_shape)
+        return ret
 
     def flux(self, phase: Tensor, wave: Tensor, **kwargs):
         theta = self.theta[..., None, None] if torch.is_tensor(self.theta) else self.theta
         # eq. (12)
         return super().flux(phase, wave) * 10 ** (-0.4 * (
-            self.M0 + self.delta_M
-            + self.bayesn_spline.evaluate(
-                self.W0 + theta * self.W1 + self.E,
+            self.bayesn_spline.evaluate(
+                self.bayesn_grid_mag,
                 phase.clamp(*self.bayesn_phase[(0, -1),]),
                 wave.clamp(*self.bayesn_wave[(0, -1),]),
             )
@@ -104,11 +113,13 @@ class TrainedBayeSNSource(BayeSNSource, Delayed):
     W1: ClassVar[Tensor] = Delayed.attribute('W1', Tensor)
     L: ClassVar[Tensor] = Delayed.attribute('L', Tensor)
 
-    def set_params(self, **kwargs):
-        super().set_params(**kwargs)
+    def set_params(self, **kwargs) -> Self:
+        ret = super().set_params(**kwargs)
 
         _E = self.E.new_zeros(self.bayesn_grid_shape[0], 1)
         self.E = broadcast_cat((_E, self.E, _E))
+
+        return ret
 
 
 class BayeSNM20Source(TrainedBayeSNSource):

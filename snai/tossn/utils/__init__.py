@@ -6,6 +6,7 @@ from typing import Callable, ClassVar, Mapping, Optional, Type, TypeVar, Union
 import torch
 from torch import Tensor
 
+import phytorchx
 from .. import __package__ as __root_package__
 
 
@@ -31,15 +32,12 @@ def _fullpath(path):
     return datadir / path
 
 
-_torch_load = partial(torch.load, map_location=torch._C._get_default_device())
-
-
 def _regitem(func, *args, _propertizer=property, **kwargs):
     return staticmethod(partial(func, *args, **kwargs))
 
 
 def _regtorch(path, **kwargs):
-    return _regitem(_torch_load, _fullpath(path), **kwargs)
+    return _regitem(phytorchx.load, _fullpath(path), **kwargs)
 
 
 class DataRegistry:

@@ -1,7 +1,9 @@
 import inspect
-from typing import Annotated, Any, ClassVar, Container, get_args, get_origin, get_type_hints, Mapping, Type, TypeVar
+from typing import Annotated, Any, ClassVar, get_args, get_origin, get_type_hints, Mapping, TypeVar
 
 import forge
+from typing_extensions import Self
+
 from feign import copy_function, feign
 
 
@@ -31,10 +33,11 @@ class UtilityBase:
 
     _params: ClassVar[Mapping[str, Any]]
 
-    def set_params(self, **kwargs):
+    def set_params(self, **kwargs) -> Self:
         for key, val in kwargs.items():
             if key in self._params and val is not self._no_value:
                 setattr(self, key, val)
+        return self
 
     @classmethod
     def fix_call_signature(cls):

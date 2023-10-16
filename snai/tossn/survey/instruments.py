@@ -1,5 +1,7 @@
 from math import log, pi
 
+from torch import Tensor
+
 from phytorch.quantities import Quantity
 
 from .units import ADU, electrons
@@ -20,25 +22,23 @@ def psf_to_area(psf1: Quantity, psf2: Quantity = None, ratio: _t = 0):
 
 
 
-def basic_instrument(model_flux: Quantity, zp_flux: Quantity, zp_mag: _t, noise: Quantity, gain: Quantity):
+def basic_instrument(countscal: Tensor, zp_mag: _t, background: Quantity, gain: Quantity):
     """
 
     Parameters
     ----------
-    model_flux:
-        [same as zp_flux]
-    zp_flux:
-        [same as model_flux]
+    countscal:
+        [dimensionless]
     zp_mag:
         [dimensionless (magnitudes)]
-    noise:
+    background:
         [ADU]
     gain:
-        [ADU / electrons]
+        [electrons / ADU]
 
     Returns
     -------
         [electrons]
     """
-    signal = (model_flux / zp_flux * 10**(0.4 * zp_mag) * ADU).to(ADU)
-    return ((signal + noise) / gain).to(electrons).value
+    signal = countscal * 10**(0.4 * zp_mag) * ADU
+    return ((signal + background) * gain).to(electrons).value

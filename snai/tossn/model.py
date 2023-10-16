@@ -14,10 +14,9 @@ from phytorch.units import Unit
 from phytorch.units.si import angstrom, day
 
 from .bandpasses.bandpass import Bandpass
-from .bandpasses.magsys import MagSys, AB
+from .bandpasses.magsys import MagSys
 from .sources.abc import Source
 from .utils import _t
-
 
 _times_T: TypeAlias = Sequence[Union[_t, '_times_T']]
 _bands_T: TypeAlias = Sequence[Union[Bandpass, '_bands_T']]
@@ -27,7 +26,7 @@ _bands_T: TypeAlias = Sequence[Union[Bandpass, '_bands_T']]
 class Field:
     times: _times_T
     bands: _bands_T
-    magsys: MagSys = AB
+    magsys: MagSys
 
     @dataclass
     class _evpT:

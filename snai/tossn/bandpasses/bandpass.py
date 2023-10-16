@@ -54,17 +54,6 @@ class Bandpass(Extinction):
     def utrans_dwave(self) -> Tensor:
         return self.trans_dwave * angstrom
 
-# @dataclass
-# class DiscretisedBandpass(Bandpass):
-#     minwave: _t
-#     maxwave: _t
-#     dwave: _t
-#
-#     @property
-#     def wave(self):
-#         Dwave = self.maxwave - self.minwave
-#         return self.minwave + torch.linspace(0., 1., (Dwave/self.dwave).max().item()) * Dwave
-
 
 class InterpolatedBandpass(Bandpass, InterpolatedExtinction):
     _mag_or_linear = InterpolatedExtinction._MagOrLinear.linear
