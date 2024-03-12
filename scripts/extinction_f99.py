@@ -11,5 +11,5 @@ torch.save(
         extinction.fitzpatrick99(wave.numpy().astype(float), a_v=1., r_v=Rv)
         for Rv in Rvs.tolist()
     ]), dtype=torch.float32).T.contiguous()),
-    '../snai/tossn/data/colourlaws/F99.pt'
+    '../slicsim/data/colourlaws/F99.pt'
 )

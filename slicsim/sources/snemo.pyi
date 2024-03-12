@@ -1,4 +1,4 @@
-from snai.tossn.sources.abc import ColouredSource, DelayedGridInterpPCASource
+from .abc import ColouredSource, DelayedGridInterpPCASource
 from ..utils import _t
 
 

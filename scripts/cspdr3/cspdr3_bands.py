@@ -3,14 +3,14 @@ import os
 import numpy as np
 import torch
 
-import snai.tossn.data
+import slicsim.data
 
 
 BASEDIR = 'CSP_filter_package'
 
 
 def save_bandpass(group, name, wave, trans):
-    fname = os.path.join(snai.tossn.data.__path__[0], 'bandpasses', group, f'{group}_{name}.pt')
+    fname = os.path.join(slicsim.data.__path__[0], 'bandpasses', group, f'{group}_{name}.pt')
     if os.path.exists(fname):
         print('EXISTS', fname)
     else:

@@ -75,7 +75,6 @@ class BayeSNSource(HsiaoSource):
         return ret
 
     def flux(self, phase: Tensor, wave: Tensor, **kwargs):
-        theta = self.theta[..., None, None] if torch.is_tensor(self.theta) else self.theta
         # eq. (12)
         return super().flux(phase, wave) * 10 ** (-0.4 * (
             self.bayesn_spline.evaluate(
@@ -83,17 +82,6 @@ class BayeSNSource(HsiaoSource):
                 phase.clamp(*self.bayesn_phase[(0, -1),]),
                 wave.clamp(*self.bayesn_wave[(0, -1),]),
             )
-            # torch.where(
-            #     torch.logical_and(
-            #         torch.logical_and(phase >= self.bayesn_phase[0],
-            #                           phase <= self.bayesn_phase[-1]),
-            #
-            #         torch.logical_and(wave >= self.bayesn_wave[0],
-            #                           wave <= self.bayesn_wave[-1]),
-            #     ),
-            #     self.bayesn_spline.evaluate(y, phase, wave),
-            #     0.
-            # )
         ))
 
 

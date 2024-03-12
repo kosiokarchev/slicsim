@@ -116,6 +116,7 @@ class CompositeMagSys(MagSys):
         return 10**(0.4*offset) * magsys.zp_counts(band)
 
 
+@cache
 def CSPMagSys_K17():
     from . import cspk17_r, cspk17_u, cspk17_g, cspk17_i, cspk17_B, cspk17_V0, cspk17_V1, cspk17_V, cspk17_Y, cspk17_J, cspk17_Jrc2, cspk17_H, cspk17_Ydw, cspk17_Jdw, cspk17_Hdw
 
@@ -140,6 +141,7 @@ def CSPMagSys_K17():
     })
 
 
+@cache
 def CSPMagSys_SNANA():
     from . import cspk17_r, cspk17_u, cspk17_g, cspk17_i, cspk17_B, cspk17_V0, cspk17_V1, cspk17_V, cspk17_Y, cspk17_J, cspk17_Jrc2, cspk17_H, cspk17_Ydw, \
         cspk17_Hdw
@@ -165,6 +167,7 @@ def CSPMagSys_SNANA():
     })
 
 
+@cache
 def CSPMagSys_BayeSN():
     from . import cspk17_r, cspk17_u, cspk17_g, cspk17_i, cspk17_B, cspk17_V0, cspk17_V1, cspk17_V, cspk17_Y, cspk17_J, cspk17_Jrc2, cspk17_H, cspk17_Ydw, cspk17_Jdw, cspk17_Hdw
 

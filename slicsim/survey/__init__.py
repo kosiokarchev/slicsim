@@ -23,6 +23,9 @@ class ExtraData(TypedDict, total=False):
 
     distance: GenericQuantity
 
+    mu: Any
+    distmod_err: float
+
 
 @dataclass
 class SurveyData:

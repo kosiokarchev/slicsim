@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slicsim"
+description = "Supernova LIght curve simulator for the era of machine learning"
+authors = [{name = "Kosio Karchev", email = "kosiokarchev@gmail.com"}]
+
+readme = "README.md"
+license = {text = "GPLv3"}
+
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Intended Audience :: Science/Research",
+    "Typing :: Typed"
+]
+
+requires-python = ">=3.9"
+
+dependencies = [
+    "phytorch",
+    "torch-scatter"
+]
+
+dynamic = ["version"]
+
+[project.urls]
+"GitHub" = "https://github.com/kosiokarchev/slicsim"
+
+
+[tool.setuptools.packages.find]
+include = ["slicsim*"]
+
+[tool.setuptools.package-data]
+slicsim = ["**/*.pyi", "data/**/*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "slicsim._version.__version__"}
+
+[tool.setuptools_scm]
+write_to = "slicsim/_version.py"
+version_scheme = "no-guess-dev"

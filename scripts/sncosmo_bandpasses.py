@@ -3,7 +3,7 @@ from typing import Iterable, Mapping, Union
 
 import torch
 
-import snai.tossn.data
+import slicsim.data
 import sncosmo as sn
 
 
@@ -59,7 +59,7 @@ for key, names in bpmap.items():
         _snkey = 'uv' if key == 'wfc3_uvis' and name in duplicates else snkey
         try:
             bp = sn.get_bandpass(_snkey + name)
-            fname = os.path.join(snai.tossn.data.__path__[0], 'bandpasses', key, f'{key}_{name}.pt')
+            fname = os.path.join(slicsim.data.__path__[0], 'bandpasses', key, f'{key}_{name}.pt')
 
             if os.path.exists(fname):
                 print('EXISTS', fname)

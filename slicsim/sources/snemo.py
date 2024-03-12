@@ -1,4 +1,4 @@
-from snai.tossn.extinction import FM07
+from ..extinction import FM07
 
 from .abc import ColouredSource, DelayedGridInterpPCASource
 from ..utils import _t, DataRegistry
