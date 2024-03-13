@@ -64,7 +64,19 @@ class BayeSNSource(HsiaoSource):
 
     delta_M: _t = 0.
     theta: _t = 0.
-    e: Tensor
+    e: UtilityBase.include(Tensor)
+
+    _e = None
+
+    @property
+    def e(self):
+        if self._e is None:
+            self._e = torch.zeros(self._E_shape.numel())
+        return self._e
+
+    @e.setter
+    def e(self, value):
+        self._e = value
 
     E: UtilityBase.private(Tensor)
     _E_shape = None

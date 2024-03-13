@@ -1,4 +1,5 @@
 import os
+from itertools import product
 from typing import Iterable, Mapping, Union
 
 import torch
@@ -20,7 +21,7 @@ def stsci_fnames(fmap: Union[Mapping[str, Iterable[int]], Iterable[int]]):
 bpmap = {
     'bessell': ('ux', *'bvri'),
     'snls3_landolt': 'ubvri',
-    'des': 'grizy',
+    'des': 'ugrizy',
     'sdss': 'ugriz',
     'acs_wfc': stsci_fnames({
         'w': (435, 475, 555, 606, 625, 775, 814), 'lp': (850,)}),
@@ -47,6 +48,8 @@ bpmap = {
 
 duplicates = stsci_fnames({'w': (475, 555, 606, 625, 775, 814), 'lp': (850,)})
 
+DRY_RUN = False
+
 for key, names in bpmap.items():
     snkey = (
         'standard::' if key == 'snls3_landolt' else
@@ -64,9 +67,10 @@ for key, names in bpmap.items():
             if os.path.exists(fname):
                 print('EXISTS', fname)
             else:
-                os.makedirs(os.path.dirname(fname), exist_ok=True)
-                torch.save((*(torch.as_tensor(a, dtype=torch.get_default_dtype())
-                              for a in (bp.wave, bp.trans)),), fname)
-                print(fname)
+                if not DRY_RUN:
+                    os.makedirs(os.path.dirname(fname), exist_ok=True)
+                    torch.save((*(torch.as_tensor(a, dtype=torch.get_default_dtype())
+                                  for a in (bp.wave, bp.trans)),), fname)
+                print('SUCCESS', fname)
         except Exception as e:
             print(f'{key} (-> {_snkey}), {name} unsuccessful: {e}')

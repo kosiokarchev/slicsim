@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slicsim"
-description = "Supernova LIght curve simulator for the era of machine learning"
+description = "Supernova LIght-Curve simulator for the machine learning era"
 authors = [{name = "Kosio Karchev", email = "kosiokarchev@gmail.com"}]
 
 readme = "README.md"
