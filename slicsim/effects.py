@@ -8,15 +8,15 @@ import forge
 
 from feign import copy_function, feign
 
-from .abc import Source
-from ..extinction import Extinction
-from ..utils import _t
-from ..utils.utility_base import UtilityBase
+from .sources.abc import Source
+from .extinction import Extinction
+from .utils import _t
+from .utils.utility_base import UtilityBase
 
 
 @dataclass
 class AffectedSource(Source, ABC):
-    base: UtilityBase.private(Source)
+    base: UtilityBase.private(Source) = None
 
     @property
     def flux_unit(self):
@@ -44,7 +44,14 @@ class AffectedSource(Source, ABC):
         return self.base(phase, wave, **kwargs)
 
 
-@dataclass
+def affected(source: Source, *effects: AffectedSource):
+    for effect in effects:
+        effect.base = source
+        source = effect
+    return source
+
+
+@dataclass(kw_only=True)
 class Phaseshifted(AffectedSource):
     phase0: _t = 0
 
@@ -52,7 +59,7 @@ class Phaseshifted(AffectedSource):
         return super().flux(phase - self.phase0, wave, **kwargs)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Redshifted(AffectedSource):
     z: _t = 0
 
@@ -64,7 +71,7 @@ class Redshifted(AffectedSource):
         return (a := self.scale_factor)**3 * super().flux(a*phase, a*wave, **kwargs)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Extincted(AffectedSource):
     ext: UtilityBase.private(Extinction)
     A: _t = 1
@@ -80,8 +87,8 @@ class Distance(AffectedSource):
         return super().flux(phase, wave, **kwargs) / (4*pi * distance**2)
 
 
-@dataclass
-class Cosmology(Distance):
+@dataclass(kw_only=True)
+class CosmologicalDistance(Distance):
     from phytorch.cosmology.core import FLRW
 
     cosmo: UtilityBase.private(FLRW)
